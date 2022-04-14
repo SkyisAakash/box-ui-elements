@@ -273,6 +273,25 @@ describe('components/date-picker/DatePicker', () => {
             );
         });
 
+        test('should set first day of week to Monday based on locale from props if present', () => {
+            renderDatePicker();
+            expect(Pikaday).toBeCalledWith(
+                expect.objectContaining({
+                    firstDay: 0,
+                }),
+            );
+
+            intlFake.locale = 'en-US';
+            renderDatePicker({
+                locale: 'en-UK',
+            });
+            expect(Pikaday).toBeCalledWith(
+                expect.objectContaining({
+                    firstDay: 1,
+                }),
+            );
+        });
+
         test.each`
             customInputProp    | bound    | description
             ${{ customInput }} | ${false} | ${'false if customInput is provided'}

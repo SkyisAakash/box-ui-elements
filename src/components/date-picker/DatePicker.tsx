@@ -21,6 +21,8 @@ import Tooltip, { TooltipPosition, TooltipTheme } from '../tooltip';
 // @ts-ignore flow import
 import { convertDateToUnixMidnightTime } from '../../utils/datetime';
 
+const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
 import './DatePicker.scss';
 
 const messages = defineMessages({
@@ -159,6 +161,8 @@ export interface DatePickerProps extends WrappedComponentProps {
     isTextInputAllowed?: boolean;
     /** Label displayed for the text input */
     label: React.ReactNode;
+    /** Local when user locale needs to be different than browser locale */
+    locale?: string;
     /** The maximum date allowed to be selected */
     maxDate?: Date;
     /** The minimum date allowed to be selected */
@@ -219,6 +223,7 @@ class DatePicker extends React.Component<DatePickerProps, DatePickerState> {
             isAccessible,
             isAlwaysVisible,
             isTextInputAllowed,
+            locale,
             maxDate,
             minDate,
             onChange,
@@ -249,21 +254,38 @@ class DatePicker extends React.Component<DatePickerProps, DatePickerState> {
         const i18n = {
             previousMonth: formatMessage(previousMonth),
             nextMonth: formatMessage(nextMonth),
-            months: range(12).map(month => formatDate(new Date(year, month, 15), { month: 'long' })),
+            months: range(12).map(month =>
+                formatDate(new Date(year, month, 15), {
+                    month: 'long',
+                    timeZone: userTimeZone,
+                }),
+            ),
             // weekdays must start with Sunday, so array of dates below is May 1st-8th, 2016
-            weekdays: range(1, 8).map(date => formatDate(new Date(2016, 4, date), { weekday: 'long' })),
-            weekdaysShort: range(1, 8).map(date => formatDate(new Date(2016, 4, date), { weekday: 'narrow' })),
+            weekdays: range(1, 8).map(date =>
+                formatDate(new Date(2016, 4, date), {
+                    weekday: 'long',
+                    timeZone: userTimeZone,
+                }),
+            ),
+            weekdaysShort: range(1, 8).map(date =>
+                formatDate(new Date(2016, 4, date), {
+                    weekday: 'narrow',
+                    timeZone: userTimeZone,
+                }),
+            ),
         };
 
         // If "bound" is true (default), the DatePicker will be appended at the end of the document, with absolute positioning
         // If "bound" is false, the DatePicker will be appended to the DOM right after the input, with relative positioning
+        const userLocale = locale || intl.locale;
+
         const datePickerConfig: AccessiblePikadayOptions = {
             bound: !customInput,
             blurFieldOnSelect: false, // Available in pikaday > 1.5.1
             setDefaultDate: true,
             defaultDate: defaultValue === null ? undefined : defaultValue,
             field: this.dateInputEl,
-            firstDay: localesWhereWeekStartsOnSunday.includes(intl.locale) ? 0 : 1,
+            firstDay: localesWhereWeekStartsOnSunday.includes(userLocale) ? 0 : 1,
             maxDate,
             minDate,
             position: 'bottom left',
@@ -572,7 +594,12 @@ class DatePicker extends React.Component<DatePickerProps, DatePickerState> {
 
     formatDisplay = (date?: Date | null): string => {
         const { displayFormat, intl } = this.props;
-        return date ? intl.formatDate(date, displayFormat) : '';
+        return date
+            ? intl.formatDate(date, {
+                  ...displayFormat,
+                  timeZone: userTimeZone,
+              })
+            : '';
     };
 
     formatDisplayDateType = (date?: Date | null): string => {
